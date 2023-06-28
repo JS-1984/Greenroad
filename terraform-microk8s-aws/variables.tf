@@ -1,6 +1,6 @@
 variable "ami_filter_name" {
     description = "Filter to use to find the AMI by name"
-    default = "flugel-microk8s-aws-*"
+    default = "JS-1984-microk8s-aws-*"
 }
 
 variable "ami_filter_owner" {
