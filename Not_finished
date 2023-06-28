@@ -1,0 +1,70 @@
+Provision resources on AWS with Azure DevOps and Terraform — Part I
+
+
+iam-user.json:
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "iam:ListRoles",
+          "sts:AssumeRole"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+
+
+user-trust-policy.json:
+{
+    "Version": "2012-10-17",
+    "Statement": {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "[AWSAccountID]"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  }
+
+
+
+aws-setup-creation.sh:
+#! /bin/bash
+
+# Create IAM User
+aws iam create-user --user-name az-deployer
+
+# Create Simple IAM Policy for IAM User
+aws iam create-policy --policy-name az-deploy-policy --policy-document file://./iam-user.json
+
+# Attach the created policy to the IAM User by giving the ARN
+aws iam attach-user-policy --user-name az-deployer --policy-arn "arn:aws:iam::[awsaccountid]:policy/az-deploy-policy"
+
+# List all attached policies for the user
+aws iam list-attached-user-policies --user-name az-deployer
+
+# Create role  with trust relationship policy
+aws iam create-role --role-name az-tf-role --assume-role-policy-document file://./role-trust-policy.json
+
+#Attach permission to the role. Here it is for S3 fullaccess and can be expanded to additional services used in TF
+aws iam attach-role-policy --role-name az-tf-role  --policy-arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+
+#List all the policies attached to the role
+aws iam list-attached-role-policies --role-name az-tf-role
+
+#Create access keys for az-deployer
+aws iam create-access-key --user-name az-deployer
+
+
+
+
+
+aws cloudformation create-stack 
+--stack-name terraform-backend-setup 
+--template-body file://backend.yml 
+--parameters ParameterKey=LockTableName,ParameterValue=terraform-state-lock ParameterKey=StateBucketName,ParameterValue=terraform-s3-state-random
+
+aws cloudformation describe-stacks --stack-name terraform-backend-setup
